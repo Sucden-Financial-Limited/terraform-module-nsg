@@ -112,116 +112,112 @@ jobs:
           terraform validate
         displayName: Terraform Validate
 
-# - ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
-#   - job: Tag
-#     displayName: Tag
-#     steps:
-#     - checkout: self
-#       persistCredentials: true
-#       fetchDepth: 0
+- ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+  - job: Tag
+    displayName: Tag
+    steps:
+    - checkout: self
+      persistCredentials: true
+      fetchDepth: 0
 
-#     - task: PowerShell@2
-#       displayName: Set Git Credentials
-#       inputs:
-#         targetType: 'inline'
-#         pwsh: true
-#         script: |
-#           git config --global user.email "AzureDevOps@AzureDevOps.com"
-#           git config --global user.name "Azure DevOps Build Service"
+    - task: PowerShell@2
+      displayName: Set Git Credentials
+      inputs:
+        targetType: 'inline'
+        pwsh: true
+        script: |
+          git config --global user.email "AzureDevOps@AzureDevOps.com"
+          git config --global user.name "Azure DevOps Build Service"
 
-#           $authConfig = git config --list | Select-String "AUTHORIZATION:"
-#           $url, $authType, $token = $authConfig -Split ' '
-#           git config --global http.https://github.com.extraheader "AUTHORIZATION: basic $token"
-#           Write-Host "##vso[task.setvariable variable=gitHubToken;]$token"
+          $authConfig = git config --list | Select-String "AUTHORIZATION:"
+          $url, $authType, $token = $authConfig -Split ' '
+          git config --global http.https://github.com.extraheader "AUTHORIZATION: basic $token"
+          Write-Host "##vso[task.setvariable variable=gitHubToken;]$token"
 
-#     - task: PowerShell@2
-#       inputs:
-#         targetType: 'inline'
-#         pwsh: true
-#         script: |
-#           #####################################
-#           # Variables.
-#           #####################################
-#           $pat             = "$(gitHubToken)"
-#           $organization    = ("$(Build.Repository.Uri)" -Split "/")[3]
-#           $repo            = ("$(Build.Repository.Uri)" -Split "/")[4]
-#           $pullRequestId   = "$(System.PullRequest.PullRequestNumber)"
-#           $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
-#           $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
-#           $apiUrl          = "https://api.github.com/repos/$organization/$repo/issues/$pullRequestId/labels"
-#           $allowedLabels   = "major", "minor", "patch"
-
-#           #####################################
-#           # Git Config.
-#           #####################################
-#           git config --global user.email "AzureDevOps@AzureDevOps.com"
-#           git config --global user.name "Azure DevOps Build Service"
-
-#           #####################################
-#           # Get Label.
-#           #####################################
-#           $sourceMessage  = "$(Build.SourceVersionMessage)"
-#           $splitString    = $sourceMessage.Split(" ")
-#           $pullRequestId  = $splitString[2].Replace(":", "")
-#           $uri            = "https://dev.azure.com/$organization/$project/_apis/git/repositories/$repositoryId/pullRequests/$pullRequestId/labels?api-version=7.1-preview.1"
-
-#           try 
-#           {
-#               $labelResponse = Invoke-RestMethod -Uri $uri -Method Get -Headers @{Authorization=("Basic {0}" -f $base64AuthInfo)}
-#               $labelName = $labelResponse.value[0].name
-#               Write-Host "##[command]Last merge label was '$labelName'"
-#               Write-Host "##[command]'$labelName' version will be bumped!"
-#               Write-Host ""
-#           }
-#           catch 
-#           {
-#               Write-Host "Error retrieving label for Pull Request $pullRequestId : $_"
-#               exit 1
-#           }
-
-#           #####################################
-#           # Git Config.
-#           #####################################
-#           try
-#           {
-#               $tags = git tag
-
-#               if (!$tags)
-#               {
-#                   Write-Host "No tags found, creating tag 1.0.0"
-#                   git tag 1.0.0
-#                   git push --tags --quiet
-#                   Write-Host "##[section]Successfully created tag 1.0.0"
-#               }
-#               else
-#               {
-#                   $currentTag = $tags | Select-Object -Last 1
-#                   [int]$major, [int]$minor, [int]$patch = $currentTag.Split('.')
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        pwsh: true
+        script: |
+          #####################################
+          # Variables.
+          #####################################
+          $pat             = "$(gitHubToken)"
+          $organization    = ("$(Build.Repository.Uri)" -Split "/")[3]
+          $repo            = ("$(Build.Repository.Uri)" -Split "/")[4]
+          $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
+          $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
     
-#                   switch ($labelName)
-#                   {
-#                     "major" {
-#                         $newTag = "$($major+1).0.0"
-#                     }
-#                     "minor" {
-#                         $newTag = "$major.$($minor+1).0"
-#                     }
-#                     "patch" {
-#                         $newTag = "$major.$minor.$($patch+1)"
-#                     }
-#                   }
+          #####################################
+          # Git Config.
+          #####################################
+          git config --global user.email "AzureDevOps@AzureDevOps.com"
+          git config --global user.name "Azure DevOps Build Service"
+
+          #####################################
+          # Get Label.
+          #####################################
+          $sourceMessage  = "$(Build.SourceVersionMessage)"
+          $splitString    = $sourceMessage.Split(" ")
+          $pullRequestId  = $splitString[3].Replace("#", "")
+          $uriUrl         = "https://api.github.com/repos/$organization/$repo/issues/$pullRequestId/labels"
+
+          try 
+          {
+              $labelResponse = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+              $labelName     = $labelsResponse.name
+
+              Write-Host "##[command]Last merge label was '$labelName'"
+              Write-Host "##[command]'$labelName' version will be bumped!"
+              Write-Host ""
+          }
+          catch 
+          {
+              Write-Host "Error retrieving label for Pull Request $pullRequestId : $_"
+              exit 1
+          }
+
+          #####################################
+          # Git Config.
+          #####################################
+          try
+          {
+              $tags = git tag
+
+              if (!$tags)
+              {
+                  Write-Host "No tags found, creating tag 1.0.0"
+                  git tag 1.0.0
+                  git push --tags --quiet
+                  Write-Host "##[section]Successfully created tag 1.0.0"
+              }
+              else
+              {
+                  $currentTag = $tags | Select-Object -Last 1
+                  [int]$major, [int]$minor, [int]$patch = $currentTag.Split('.')
     
-#                   Write-Host "##[command]Creating new tag $newTag"
-#                   git tag $newTag
-#                   git push --tags --quiet
-#                   Write-Host "##[section]Successfully created tag $newTag"
-#               }
-#           }
-#           catch
-#           {
-#               Write-Host "Failed to tag repository"
-#               Write-Host $_
-#               exit 1
-#           }
-#       env:
-#         PAT: $(System.AccessToken)
+                  switch ($labelName)
+                  {
+                    "major" {
+                        $newTag = "$($major+1).0.0"
+                    }
+                    "minor" {
+                        $newTag = "$major.$($minor+1).0"
+                    }
+                    "patch" {
+                        $newTag = "$major.$minor.$($patch+1)"
+                    }
+                  }
+    
+                  Write-Host "##[command]Creating new tag $newTag"
+                  git tag $newTag
+                  git push --tags --quiet
+                  Write-Host "##[section]Successfully created tag $newTag"
+              }
+          }
+          catch
+          {
+              Write-Host "Failed to tag repository"
+              Write-Host $_
+              exit 1
+          }
