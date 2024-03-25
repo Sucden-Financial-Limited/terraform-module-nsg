@@ -20,10 +20,10 @@ steps:
   displayName: Set Git Credentials
 
 - pwsh: |
-    $pat = "$(gitHubToken)"
-    $orgName = "Sucden-Financial-Limited"
+    $pat             = "$(gitHubToken)"
+    $orgName         = "Sucden-Financial-Limited"
     $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
-    $headers = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
-    $apiUrl = "https://api.github.com/repos/Sucden-Financial-Limited/terraform-module-nsg/issues/$(System.PullRequest.PullRequestId)/labels"
-    $response = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+    $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
+    $apiUrl          = "https://api.github.com/repos/Sucden-Financial-Limited/terraform-module-nsg/pulls/$(System.PullRequest.PullRequestId)"
+    $response         = Invoke-RestMethod -Uri $apiUrl -Headers $headers
     $response
