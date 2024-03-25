@@ -9,6 +9,8 @@ steps:
   persistCredentials: true
   fetchDepth: 0
 
+- bash: printenv
+
 - task: PowerShell@2
   displayName: Set Git Credentials
   inputs:
@@ -78,6 +80,7 @@ steps:
               }
           }
       }
+      catch
       {
         Write-Host "Error retrieving label for Pull Request $pullRequestId : $_"
         exit 1
