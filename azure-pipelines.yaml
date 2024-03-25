@@ -26,5 +26,5 @@ steps:
     $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
     $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
     $apiUrl          = "https://api.github.com/repos/Sucden-Financial-Limited/terraform-module-nsg/issues/$prNumber/labels"
-    $response         = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+    $response         = Invoke-RestMethod -Uri $apiUrl -Headers $headers | Select -ExpandProperty name
     $response
