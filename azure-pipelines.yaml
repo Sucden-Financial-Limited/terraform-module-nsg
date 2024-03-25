@@ -9,22 +9,77 @@ steps:
   persistCredentials: true
   fetchDepth: 0
 
-- pwsh: |
-    git config --global user.email "AzureDevOps@AzureDevOps.com"
-    git config --global user.name "Azure DevOps Build Service"
-
-    $authConfig = git config --list | Select-String "AUTHORIZATION:"
-    $url, $authType, $token = $authConfig -Split ' '
-    git config --global http.https://github.com.extraheader "AUTHORIZATION: basic $token"
-    Write-Host "##vso[task.setvariable variable=gitHubToken;]$token"
+- task: PowerShell@2
   displayName: Set Git Credentials
+  pwsh: true
+  inputs:
+    targetType: 'inline'
+    pwsh: true
+    script: |
+      git config --global user.email "AzureDevOps@AzureDevOps.com"
+      git config --global user.name "Azure DevOps Build Service"
 
-- pwsh: |
-    $pat             = "$(gitHubToken)"
-    $orgName         = "Sucden-Financial-Limited"
-    $prNumber           = "$(System.PullRequest.PullRequestNumber)"
-    $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
-    $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
-    $apiUrl          = "https://api.github.com/repos/Sucden-Financial-Limited/terraform-module-nsg/issues/$prNumber/labels"
-    $response         = Invoke-RestMethod -Uri $apiUrl -Headers $headers | Select -ExpandProperty name
-    $response
+      $authConfig = git config --list | Select-String "AUTHORIZATION:"
+      $url, $authType, $token = $authConfig -Split ' '
+      git config --global http.https://github.com.extraheader "AUTHORIZATION: basic $token"
+      Write-Host "##vso[task.setvariable variable=gitHubToken;]$token"
+
+- task: PowerShell@2
+  displayName: Validate Pull Request Labels
+  inputs:
+    targetType: 'inline'
+    pwsh: true
+    script: |
+      #####################################
+      # Variables.
+      #####################################
+      $pat             = "$(gitHubToken)"
+      $orgName         = "Sucden-Financial-Limited"
+      $pullRequestId   = "$(System.PullRequest.PullRequestNumber)"
+      $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
+      $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
+      $apiUrl          = "https://api.github.com/repos/Sucden-Financial-Limited/terraform-module-nsg/issues/$pullRequestId/labels"
+      $allowedLabels   = "major", "minor", "patch"
+
+      #####################################
+      # Check Labels.
+      #####################################
+      Write-Host "##[command]Checking Pull Request ID '$pullRequestId' labels, please wait..."
+      Write-Host ""
+
+      try
+      {
+          $labelsResponse = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+          $labels = $labelsResponse.name
+
+          if ($labels.Count -eq 0) 
+          {
+              Write-Host ""
+              Write-Host "##[error]No labels found. One label must be specified. Allowed values are 'major', 'minor', 'patch'."
+              exit 1
+          }
+          elseif ($labels.Count -gt 1)
+          {
+              Write-Host ""
+              Write-Host "##[error]Found $($labels.Count) labels."
+              Write-Host "##[error]Only 1 label should be specified. Allowed values are 'major', 'minor', 'patch'."
+              exit 1
+          }
+          else
+          {
+              if ($allowedLabels -contains $labels) 
+              {
+                  Write-Host "##[section]Found label '$labels'"
+              }
+              else
+              {
+                  Write-Host "##[error]Found label '$labels'"
+                  Write-Host "##[error]Allowed values for lablels are 'major', 'minor', 'patch'."
+                  exit 1
+              }
+          }
+      }
+      {
+        Write-Host "Error retrieving label for Pull Request $pullRequestId : $_"
+        exit 1
+      }
