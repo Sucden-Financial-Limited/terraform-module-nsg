@@ -35,11 +35,12 @@ steps:
       # Variables.
       #####################################
       $pat             = "$(gitHubToken)"
-      $orgName         = "Sucden-Financial-Limited"
+      $organization    = ("$(Build.Repository.Uri)" -Split "/")[3]
+      $repo            = ("$(Build.Repository.Uri)" -Split "/")[4]
       $pullRequestId   = "$(System.PullRequest.PullRequestNumber)"
       $base64AuthValue = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f "", $pat)))
       $headers         = @{ "Authorization" = ("Basic {0}" -f $base64AuthValue) }
-      $apiUrl          = "https://api.github.com/repos/Sucden-Financial-Limited/terraform-module-nsg/issues/$pullRequestId/labels"
+      $apiUrl          = "https://api.github.com/repos/$organization/$repo/issues/$pullRequestId/labels"
       $allowedLabels   = "major", "minor", "patch"
 
       #####################################
