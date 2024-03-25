@@ -167,8 +167,8 @@ jobs:
               $labelsResponse = Invoke-RestMethod -Uri $apiUrl -Headers $headers
               $labels = $labelsResponse.name
 
-              Write-Host "##[command]Last merge label was '$labelName'"
-              Write-Host "##[command]'$labelName' version will be bumped!"
+              Write-Host "##[command]Last merge label was '$labels'"
+              Write-Host "##[command]'$labels' version will be bumped!"
               Write-Host ""
           }
           catch 
@@ -196,7 +196,7 @@ jobs:
                   $currentTag = $tags | Select-Object -Last 1
                   [int]$major, [int]$minor, [int]$patch = $currentTag.Split('.')
     
-                  switch ($labelName)
+                  switch ($labels)
                   {
                     "major" {
                         $newTag = "$($major+1).0.0"
