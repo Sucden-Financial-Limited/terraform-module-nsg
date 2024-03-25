@@ -160,7 +160,7 @@ jobs:
           $sourceMessage  = "$(Build.SourceVersionMessage)"
           $splitString    = $sourceMessage.Split(" ")
           $pullRequestId  = $splitString[3].Replace("#", "")
-          $uriUrl         = "https://api.github.com/repos/$organization/$repo/issues/$pullRequestId/labels"
+          $apiUrl         = "https://api.github.com/repos/$organization/$repo/issues/$pullRequestId/labels"
 
           try 
           {
