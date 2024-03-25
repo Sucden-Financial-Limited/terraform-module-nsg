@@ -164,8 +164,8 @@ jobs:
 
           try 
           {
-              $labelResponse = Invoke-RestMethod -Uri $apiUrl -Headers $headers
-              $labelName     = $labelsResponse.name
+              $labelsResponse = Invoke-RestMethod -Uri $apiUrl -Headers $headers
+              $labels = $labelsResponse.name
 
               Write-Host "##[command]Last merge label was '$labelName'"
               Write-Host "##[command]'$labelName' version will be bumped!"
